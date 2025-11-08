@@ -1,93 +1,149 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 
 function uid() { return Math.random().toString(36).slice(2); }
-interface Verse { name: string; lines: string[]; }
+interface Verse { name: string; lines: string[]; type?: 'verse' | 'chorus' | 'other'; }
 interface Song { id: string; title: string; ccliNo?: string; verseOrder: string[]; verses: Record<string, Verse>; preInterleaved?: boolean; }
 
 function parseHymnFile(text: string, fixedId?: string): Song | null {
   try {
-    const lines = text.split('\n').map(line => line.trim()).filter(Boolean);
+    const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
     let title = "Untitled";
     let ccliNo: string | undefined;
     const verses: Record<string, Verse> = {};
     let inMetadata = true;
-    let currentSection = "";
-    let currentLanguage = "";
-    const englishBlocks: Record<string, string[]> = {};
-    const chineseBlocks: Record<string, string[]> = {};
+    let currentSectionKey = "";
+    let currentLanguage: "english" | "chinese" | null = null;
+    const verseOrder: string[] = [];
+    const sectionCounts: Record<string, number> = {};
+    const baseQueues: Record<string, string[]> = {};
+    const baseKeyBySection: Record<string, string> = {};
+    const sections: Record<string, { label: string; english: string[]; chinese: string[]; type: Verse['type']; hasChinese: boolean }> = {};
+
+    const normalizeBase = (label: string) => label.trim().toLowerCase().replace(/\s+/g, " ");
+    const detectType = (label: string): Verse['type'] => {
+      const normalized = label.toLowerCase();
+      if (normalized.startsWith("verse")) return "verse";
+      if (normalized.startsWith("chorus")) return "chorus";
+      if (normalized.startsWith("bridge") || normalized.startsWith("intro") || normalized.startsWith("outro") || normalized.startsWith("ending")) return "other";
+      return "other";
+    };
+    const matchSectionHeading = (line: string) => {
+      const match = line.match(/^(.+?) (English|Chinese):$/i);
+      if (!match) return null;
+      const base = match[1].trim();
+      const lang = match[2].toLowerCase() as "english" | "chinese";
+      const normalized = base.toLowerCase();
+      if (!(normalized.startsWith("verse") || normalized.startsWith("chorus") || normalized.startsWith("bridge") || normalized.startsWith("intro") || normalized.startsWith("outro") || normalized.startsWith("ending"))) {
+        return null;
+      }
+      return { base, lang, normalized };
+    };
+    const ensureSectionRecord = (key: string, label: string, type: Verse['type']) => {
+      if (!sections[key]) {
+        sections[key] = { label, english: [], chinese: [], type, hasChinese: false };
+        verseOrder.push(key);
+      } else if (!sections[key].label) {
+        sections[key].label = label;
+      }
+    };
+    const createSectionKey = (baseKey: string) => {
+      const count = (sectionCounts[baseKey] || 0) + 1;
+      sectionCounts[baseKey] = count;
+      return count === 1 ? baseKey : `${baseKey}#${count}`;
+    };
+    const releaseFromBaseQueue = (key: string) => {
+      const baseKey = baseKeyBySection[key];
+      const queue = baseKey ? baseQueues[baseKey] : undefined;
+      if (!queue || !queue.length) return;
+      const idx = queue.indexOf(key);
+      if (idx >= 0) queue.splice(idx, 1);
+    };
+    const findSectionForChinese = (baseKey: string, type: Verse['type'], fallbackLabel: string) => {
+      const queue = baseQueues[baseKey];
+      if (queue && queue.length) {
+        while (queue.length) {
+          const candidate = queue.shift()!;
+          if (!sections[candidate]?.hasChinese) return candidate;
+        }
+      }
+      if (type) {
+        const candidate = verseOrder.find(key => sections[key]?.type === type && !sections[key].hasChinese);
+        if (candidate) return candidate;
+      }
+      const fallback = verseOrder.find(key => !sections[key].hasChinese);
+      if (fallback) return fallback;
+
+      const derivedBase = baseKey || `section-${verseOrder.length + 1}`;
+      const newKey = createSectionKey(derivedBase);
+      ensureSectionRecord(newKey, fallbackLabel, type);
+      baseKeyBySection[newKey] = derivedBase;
+      return newKey;
+    };
+
+    const handleSectionHeading = (line: string) => {
+      const match = matchSectionHeading(line);
+      if (!match) return false;
+      const { base, lang } = match;
+      const baseKey = normalizeBase(base);
+      const sectionType = detectType(base);
+
+      if (lang === "english") {
+        const key = createSectionKey(baseKey);
+        ensureSectionRecord(key, base, sectionType);
+        baseKeyBySection[key] = baseKey;
+        baseQueues[baseKey] = baseQueues[baseKey] || [];
+        baseQueues[baseKey].push(key);
+        currentSectionKey = key;
+        currentLanguage = "english";
+      } else {
+        const key = findSectionForChinese(baseKey, sectionType, base);
+        ensureSectionRecord(key, sections[key]?.label || base, sectionType);
+        releaseFromBaseQueue(key);
+        sections[key].hasChinese = true;
+        currentSectionKey = key;
+        currentLanguage = "chinese";
+      }
+      return true;
+    };
 
     for (const line of lines) {
-      // Parse metadata
       if (inMetadata) {
-        if (line.startsWith('Title:')) {
+        if (line.startsWith("Title:")) {
           title = line.substring(6).trim();
-        } else if (line.startsWith('CCLI:')) {
+          continue;
+        }
+        if (line.startsWith("CCLI:")) {
           ccliNo = line.substring(5).trim();
-        } else if (line === '') {
-          continue; // Skip empty lines in metadata
-        } else if (line.match(/^Verse \d+ (English|Chinese):$|^Chorus (English|Chinese):$|^Bridge (English|Chinese):$|^Intro (English|Chinese):$|^Outro (English|Chinese):$|^Ending (English|Chinese):$/i)) {
+          continue;
+        }
+        if (handleSectionHeading(line)) {
           inMetadata = false;
-          const match = line.match(/^(.+) (English|Chinese):$/i);
-          if (match) {
-            currentSection = match[1].toLowerCase();
-            currentLanguage = match[2].toLowerCase();
-
-            if (currentLanguage === 'english') {
-              englishBlocks[currentSection] = [];
-            } else if (currentLanguage === 'chinese') {
-              chineseBlocks[currentSection] = [];
-            }
-          }
-        } else {
-          // Unknown metadata line, ignore
         }
       } else {
-        // Parse content blocks
-        if (line.match(/^Verse \d+ (English|Chinese):$|^Chorus (English|Chinese):$|^Bridge (English|Chinese):$|^Intro (English|Chinese):$|^Outro (English|Chinese):$|^Ending (English|Chinese):$/i)) {
-          const match = line.match(/^(.+) (English|Chinese):$/i);
-          if (match) {
-            currentSection = match[1].toLowerCase();
-            currentLanguage = match[2].toLowerCase();
-
-            if (currentLanguage === 'english') {
-              englishBlocks[currentSection] = [];
-            } else if (currentLanguage === 'chinese') {
-              chineseBlocks[currentSection] = [];
-            }
-          }
-        } else if (line.trim() !== '' && currentSection) {
-          if (currentLanguage === 'english') {
-            englishBlocks[currentSection].push(line);
-          } else if (currentLanguage === 'chinese') {
-            chineseBlocks[currentSection].push(line);
+        if (handleSectionHeading(line)) continue;
+        if (line && currentSectionKey) {
+          if (currentLanguage === "english") {
+            sections[currentSectionKey]?.english.push(line);
+          } else if (currentLanguage === "chinese") {
+            sections[currentSectionKey]?.chinese.push(line);
           }
         }
       }
     }
 
-    // Create interleaved verses
-    for (const sectionName of Object.keys(englishBlocks)) {
-      const englishLines = englishBlocks[sectionName] || [];
-      const chineseLines = chineseBlocks[sectionName] || [];
-
-      // Interleave the lines: EN, ZH, EN, ZH, etc.
+    for (const key of verseOrder) {
+      const section = sections[key];
+      if (!section) continue;
+      const englishLines = section.english;
+      const chineseLines = section.chinese;
       const interleavedLines: string[] = [];
       const maxLines = Math.max(englishLines.length, chineseLines.length);
-
       for (let i = 0; i < maxLines; i++) {
-        if (i < englishLines.length) {
-          interleavedLines.push(englishLines[i]);
-        }
-        if (i < chineseLines.length) {
-          interleavedLines.push(chineseLines[i]);
-        }
+        if (i < englishLines.length) interleavedLines.push(englishLines[i]);
+        if (i < chineseLines.length) interleavedLines.push(chineseLines[i]);
       }
-
-      verses[sectionName] = { name: sectionName, lines: interleavedLines };
+      verses[key] = { name: section.label, lines: interleavedLines, type: section.type };
     }
-
-    // Generate verse order from the verses we found
-    const verseOrder = Object.keys(verses);
 
     return {
       id: fixedId || uid(),
@@ -95,7 +151,7 @@ function parseHymnFile(text: string, fixedId?: string): Song | null {
       ccliNo,
       verseOrder,
       verses,
-      preInterleaved: true // Mark that lines are already interleaved
+      preInterleaved: true
     };
   } catch {
     return null;
@@ -166,7 +222,7 @@ function ControlScreen({
   searchQuery: string;
   onSearchChange: (value: string) => void;
   totalSongCount: number;
-  slides: { label: string; lines: string[]; stzNumber?: string }[];
+  slides: { label: string; lines: string[]; stzNumber?: string; layoutHint?: 'dense' }[];
   slideIdx: number;
   setSlideIdx: (idx: number) => void;
   onImport: (files: FileList | null) => void;
@@ -257,17 +313,33 @@ function ControlScreen({
 
 // Display Screen Component
 function DisplayScreen({ slides, slideIdx, currentSong, totalStanzas }: {
-  slides: { label: string; lines: string[]; stzNumber?: string; stanzaIndex?: number; isChorus?: boolean }[];
+  slides: { label: string; lines: string[]; stzNumber?: string; stanzaIndex?: number; isChorus?: boolean; layoutHint?: 'dense' }[];
   slideIdx: number;
   currentSong: Song | null;
   totalStanzas: number;
 }) {
   const projectorRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   // Ensure slideIdx is within bounds
   const safeSlideIdx = Math.min(slideIdx, slides.length - 1);
   const cur = slides[safeSlideIdx] || { label: "", lines: [] };
   const currentStanzaIndex = cur?.stanzaIndex || undefined;
   const isChorusSlide = cur?.isChorus;
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isActive = document.fullscreenElement === projectorRef.current;
+      setIsFullscreen(isActive);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const projectorClasses = [
+    "w-full aspect-video rounded-xl bg-blue-900 shadow-inner relative overflow-hidden cursor-pointer projector-canvas",
+    isFullscreen ? "projector-canvas--live" : "projector-canvas--preview"
+  ].join(" ");
+  const bodyPadding = isFullscreen ? "p-[5%]" : "p-4 md:p-6";
 
   return (
     <div className="w-full min-h-screen bg-slate-100 p-4">
@@ -282,12 +354,16 @@ function DisplayScreen({ slides, slideIdx, currentSong, totalStanzas }: {
           </button>
         </div>
 
-        <div ref={projectorRef} className="w-full aspect-video rounded-xl bg-blue-900 shadow-inner relative overflow-hidden cursor-pointer" onClick={() => projectorRef.current?.requestFullscreen?.()}>
+        <div
+          ref={projectorRef}
+          className={projectorClasses}
+          onClick={() => projectorRef.current?.requestFullscreen?.()}
+        >
           <div className="absolute inset-0 flex flex-col">
             <div className="h-1/6" />
-            <div className="flex-1 flex items-center justify-center p-[5%]">
+            <div className={`flex-1 flex items-center justify-center ${bodyPadding}`}>
               <div className="w-full h-full flex items-center justify-center">
-                <div className="text-yellow-200 projector-text text-[2.5rem] text-center font-semibold leading-relaxed">
+                <div className={`text-yellow-200 projector-text text-center font-semibold leading-relaxed ${cur.layoutHint === 'dense' ? 'projector-text--dense' : ''}`}>
                   {cur.lines && cur.lines.length > 0 ? (
                     cur.lines.map((line, idx) => (
                       <div key={idx}>{line}</div>
@@ -313,9 +389,11 @@ function DisplayScreen({ slides, slideIdx, currentSong, totalStanzas }: {
               {isChorusSlide ? 'Chorus' : (currentStanzaIndex ? `${currentStanzaIndex}/${totalStanzas}` : `–/${totalStanzas}`)}
             </div>
           )}
-          <div className="absolute bottom-4 left-4 text-yellow-400/50 text-sm">
-            Click to fullscreen • Slide {safeSlideIdx + 1} of {slides.length}
-          </div>
+          {!isFullscreen && (
+            <div className="projector-preview-hint">
+              Click to launch fullscreen
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -382,16 +460,17 @@ export default function App() {
   const filteredSongs = useMemo(() => filterSongsByCcli(songs, searchQuery), [songs, searchQuery]);
 
   const slides = useMemo(() => {
-    if (!currentSong) return [] as { label: string; lines: string[], stzNumber?: string; stanzaIndex?: number; isChorus?: boolean }[];
-    const out: { label: string, lines: string[], stzNumber?: string, stanzaIndex?: number, isChorus?: boolean }[] = [];
+    if (!currentSong) return [] as { label: string; lines: string[], stzNumber?: string; stanzaIndex?: number; isChorus?: boolean; layoutHint?: 'dense' }[];
+    const out: { label: string, lines: string[], stzNumber?: string, stanzaIndex?: number, isChorus?: boolean, layoutHint?: 'dense' }[] = [];
     const order = currentSong.verseOrder.length ? currentSong.verseOrder : Object.keys(currentSong.verses);
     let stanzaIdx = 0;
     for (const key of order) {
       const v = currentSong.verses[key]; if (!v) continue;
 
-      const m = key.match(/v(\d+)/i);
-      const stzNum = m ? m[1] : (key.toLowerCase().startsWith("c") ? "C" : undefined);
-      const isChorus = key.toLowerCase().startsWith("chorus") || stzNum === "C";
+      const baseLabel = v.name || key;
+      const isChorus = v.type === 'chorus' || baseLabel.toLowerCase().startsWith("chorus");
+      const m = !isChorus ? baseLabel.match(/(\d+)/) : null;
+      const stzNum = m ? m[1] : (isChorus ? "C" : undefined);
       if (!isChorus) stanzaIdx += 1;
       
       if (currentSong.preInterleaved) {
@@ -405,13 +484,15 @@ export default function App() {
         for (let i = 0; i < v.lines.length; i += chunkSize) {
           const chunk = v.lines.slice(i, i + chunkSize);
           const chunkIndex = Math.floor(i / chunkSize);
-          const label = chunkCount > 1 ? `${key}${String.fromCharCode(97 + chunkIndex)}` : key;
+          const labelBase = baseLabel || key;
+          const label = chunkCount > 1 ? `${labelBase}${String.fromCharCode(97 + chunkIndex)}` : labelBase;
           out.push({
             label,
             lines: chunk,
             stzNumber: stzNum,
             stanzaIndex: isChorus ? undefined : stanzaIdx,
-            isChorus
+            isChorus,
+            layoutHint: hasFiveLineStanza ? 'dense' : undefined
           });
         }
         if (v.lines.length === 0) {
@@ -432,7 +513,8 @@ export default function App() {
             lines: chunk, 
             stzNumber: stzNum,
             stanzaIndex: isChorus ? undefined : stanzaIdx,
-            isChorus
+            isChorus,
+            layoutHint: chunk.length >= 10 ? 'dense' : undefined
           });
         }
       }
@@ -456,7 +538,7 @@ export default function App() {
       if (e.key === "ArrowRight" || e.key.toLowerCase() === "d") setSlideIdx(i => Math.min(slides.length-1, i+1));
       else if (e.key === "ArrowLeft" || e.key.toLowerCase() === "a") setSlideIdx(i => Math.max(0, i-1));
       else if (e.key.toLowerCase() === "f") {
-        const projectorEl = document.querySelector('.bg-black') as HTMLElement;
+        const projectorEl = document.querySelector('.projector-canvas') as HTMLElement | null;
         projectorEl?.requestFullscreen?.();
       }
     };

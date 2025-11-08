@@ -5,6 +5,7 @@ Hymn Projector is a simple web application for presenting bilingual hymns during
 ## Features
 - Loads `.hymn` files stored under `public/hymns/`
 - Automatically interleaves English and Chinese lines and limits each slide to 8 total lines (4 English + 4 Chinese) by collating stanza text
+- Preserves the author-provided stanza order, including hymns that cycle across multiple distinct choruses
 - Control screen for selecting hymns, adjusting modes, and triggering slides
 - Display screen shows hymn title, bilingual lyrics, and stanza progress indicator
 
@@ -21,11 +22,6 @@ The script always applies the line-collation rule during generation and reformat
 ## Missing / To-Verify Hymns
 - Hymn 283 — source text not yet available
 - Hymn 129 — contains two extra Chinese stanzas that do not have English counterparts (needs review)
-- Hymn 194 — includes multiple choruses; current display flow expects only one chorus per hymn and may need special handling
-- Hymn 219 — also includes multiple choruses that the current display logic does not support yet
-- Hymn 237 — multiple choruses present; current slide logic only handles a single chorus reference
-- Hymn 240 — multiple choruses; needs special handling before use in the app
-- Hymn 243 — multiple choruses; needs the same special handling
-- Hymn 436 — multiple choruses; current display logic will misnumber the stanzas
+- Hymns 194, 219, 237, 240, 243, 436 — now render with their multiple choruses, but keep an eye out for any transcription mistakes as more source PDFs get ingested
 - Enhancement idea: some hymns (e.g., around #340) have five-line choruses where the last line repeats; consider adding support so the full chorus fits on one slide without manual editing
 - Hymn 328 - no English text

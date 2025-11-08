@@ -3,7 +3,15 @@
 @tailwind utilities;
 
 html, body, #root { height: 100%; }
-.projector-text { white-space: pre-wrap; line-height: 1.75; font-size: 3.5rem; }
+.projector-text {
+  white-space: pre-wrap;
+  line-height: 1.6;
+  font-size: clamp(2.2rem, 3.8vw, 4rem);
+}
+
+.projector-text--dense {
+  line-height: 1.35;
+}
 
 /* Customizable projector title styling */
 .projector-title {
@@ -35,4 +43,44 @@ html, body, #root { height: 100%; }
   text-shadow: 0 0 8px rgba(0, 0, 0, 0.7);
   letter-spacing: 0.08em;
   font-weight: 600;
+}
+
+.projector-canvas--preview .projector-text {
+  font-size: clamp(1rem, 1.6vw, 1.8rem);
+  line-height: 1.4;
+}
+
+.projector-canvas--preview .projector-text--dense {
+  line-height: 1.25;
+}
+
+.projector-canvas--preview .projector-title__main {
+  font-size: clamp(1.1rem, 1.5vw, 1.8rem);
+}
+
+.projector-canvas--preview .projector-title__subtitle {
+  font-size: clamp(0.85rem, 1.2vw, 1.3rem);
+}
+
+.projector-canvas--preview .projector-stanza-indicator {
+  font-size: clamp(0.95rem, 1.2vw, 1.4rem);
+}
+
+.projector-canvas--preview .projector-title__divider {
+  opacity: 0.7;
+}
+
+.projector-preview-hint {
+  position: absolute;
+  left: 50%;
+  bottom: 1.25rem;
+  transform: translateX(-50%);
+  padding: 0.35rem 0.85rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.75);
+  color: #f8fafc;
+  font-size: 0.85rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  pointer-events: none;
 }
