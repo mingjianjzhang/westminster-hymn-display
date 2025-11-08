@@ -16,31 +16,8 @@ PUNCTUATION_CHARS = set(',.;!?，。！？：；、。…“”"\'`')
 
 
 def collapse_lines(lines: List[str], lang: str, max_lines: int = 4) -> List[str]:
-    """Combine adjacent lyric lines until at most max_lines remain."""
-    normalized = [ln.strip() for ln in lines if ln.strip()]
-    if not normalized:
-        return []
-
-    def join(a: str, b: str) -> str:
-        joiner = '' if lang == 'cn' else ' '
-        if a.endswith(('—', '-')):
-            joiner = ''
-        return f"{a.rstrip()}{joiner}{b.lstrip()}"
-
-    while len(normalized) > max_lines:
-        merged: List[str] = []
-        idx = 0
-        while idx < len(normalized):
-            first = normalized[idx]
-            if idx + 1 < len(normalized):
-                merged.append(join(first, normalized[idx + 1]))
-                idx += 2
-            else:
-                merged.append(first)
-                idx += 1
-        normalized = merged
-
-    return normalized
+    """Normalize lyrics while preserving individual lines."""
+    return [ln.strip() for ln in lines if ln.strip()]
 
 
 def has_cjk(text: str) -> bool:

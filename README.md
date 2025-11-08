@@ -20,6 +20,12 @@ The script always applies the line-collation rule during generation and reformat
 
 ## Missing / To-Verify Hymns
 - Hymn 283 — source text not yet available
-
-
-sample change 
+- Hymn 129 — contains two extra Chinese stanzas that do not have English counterparts (needs review)
+- Hymn 194 — includes multiple choruses; current display flow expects only one chorus per hymn and may need special handling
+- Hymn 219 — also includes multiple choruses that the current display logic does not support yet
+- Hymn 237 — multiple choruses present; current slide logic only handles a single chorus reference
+- Hymn 240 — multiple choruses; needs special handling before use in the app
+- Hymn 243 — multiple choruses; needs the same special handling
+- Hymn 436 — multiple choruses; current display logic will misnumber the stanzas
+- Enhancement idea: some hymns (e.g., around #340) have five-line choruses where the last line repeats; consider adding support so the full chorus fits on one slide without manual editing
+- Hymn 328 - no English text

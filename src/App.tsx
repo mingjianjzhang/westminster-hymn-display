@@ -283,20 +283,23 @@ function DisplayScreen({ slides, slideIdx, currentSong, totalStanzas }: {
         </div>
 
         <div ref={projectorRef} className="w-full aspect-video rounded-xl bg-blue-900 shadow-inner relative overflow-hidden cursor-pointer" onClick={() => projectorRef.current?.requestFullscreen?.()}>
-          <div className="absolute inset-0 flex items-center justify-center p-[5%]">
-            <div className="w-full h-full flex items-center justify-center">
-              <div className="text-yellow-400 projector-text text-[2.5rem] text-center font-semibold leading-relaxed">
-                {cur.lines && cur.lines.length > 0 ? (
-                  cur.lines.map((line, idx) => (
-                    <div key={idx}>{line}</div>
-                  ))
-                ) : (
-                  <div className="text-yellow-200">Loading...</div>
-                )}
+          <div className="absolute inset-0 flex flex-col">
+            <div className="h-1/6" />
+            <div className="flex-1 flex items-center justify-center p-[5%]">
+              <div className="w-full h-full flex items-center justify-center">
+                <div className="text-yellow-200 projector-text text-[2.5rem] text-center font-semibold leading-relaxed">
+                  {cur.lines && cur.lines.length > 0 ? (
+                    cur.lines.map((line, idx) => (
+                      <div key={idx}>{line}</div>
+                    ))
+                  ) : (
+                    <div className="text-yellow-200">Loading...</div>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-          <div className="projector-title absolute top-4 inset-x-4 flex flex-col text-center text-yellow-200 drop-shadow">
+          <div className="projector-title absolute top-4 inset-x-4 flex flex-col text-center text-sky-100 drop-shadow">
             <div className="projector-title__main font-semibold tracking-wide uppercase">
               {currentSong ? `${currentSong.ccliNo ? `${currentSong.ccliNo} • ` : ''}${currentSong.title.split('/')[0].trim()}` : ''}
             </div>
@@ -393,7 +396,11 @@ export default function App() {
       
       if (currentSong.preInterleaved) {
         // For pre-interleaved hymns (text format), chunk verses to max 8 lines per slide
-        const chunkSize = 8;
+        // Edge case: if we detect five English + five Chinese lines (10 total), allow all on one slide
+        const englishLineEstimate = Math.ceil(v.lines.length / 2);
+        const chineseLineEstimate = Math.floor(v.lines.length / 2);
+        const hasFiveLineStanza = englishLineEstimate === 5 && chineseLineEstimate === 5;
+        const chunkSize = hasFiveLineStanza ? 10 : 8;
         const chunkCount = Math.ceil(v.lines.length / chunkSize) || 1;
         for (let i = 0; i < v.lines.length; i += chunkSize) {
           const chunk = v.lines.slice(i, i + chunkSize);
