@@ -357,19 +357,25 @@ function DisplayScreen({ slides, slideIdx, currentSong, totalStanzas }: {
         <div
           ref={projectorRef}
           className={projectorClasses}
+          style={{ backgroundColor: '#000066' }}
           onClick={() => projectorRef.current?.requestFullscreen?.()}
         >
           <div className="absolute inset-0 flex flex-col">
             <div className="h-1/6" />
             <div className={`flex-1 flex items-center justify-center ${bodyPadding}`}>
               <div className="w-full h-full flex items-center justify-center">
-                <div className={`text-yellow-200 projector-text text-center font-semibold leading-relaxed ${cur.layoutHint === 'dense' ? 'projector-text--dense' : ''}`}>
+                <div
+                  className={`projector-text text-center font-semibold leading-relaxed ${
+                    cur.layoutHint === 'dense' ? 'projector-text--dense' : ''
+                  }`}
+                  style={{ color: '#ffff98' }}
+                >
                   {cur.lines && cur.lines.length > 0 ? (
                     cur.lines.map((line, idx) => (
                       <div key={idx}>{line}</div>
                     ))
                   ) : (
-                    <div className="text-yellow-200">Loading...</div>
+                    <div style={{ color: '#ffff98' }}>Loading...</div>
                   )}
                 </div>
               </div>
