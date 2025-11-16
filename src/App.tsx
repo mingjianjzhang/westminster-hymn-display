@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 function uid() { return Math.random().toString(36).slice(2); }
 interface Verse { name: string; lines: string[]; type?: 'verse' | 'chorus' | 'other'; }
@@ -319,7 +319,9 @@ function DisplayScreen({ slides, slideIdx, currentSong, totalStanzas }: {
   totalStanzas: number;
 }) {
   const projectorRef = useRef<HTMLDivElement>(null);
+  const titleRef = useRef<HTMLDivElement>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [titleOffset, setTitleOffset] = useState(0);
   // Ensure slideIdx is within bounds
   const safeSlideIdx = Math.min(slideIdx, slides.length - 1);
   const cur = slides[safeSlideIdx] || { label: "", lines: [] };
@@ -340,6 +342,21 @@ function DisplayScreen({ slides, slideIdx, currentSong, totalStanzas }: {
     isFullscreen ? "projector-canvas--live" : "projector-canvas--preview"
   ].join(" ");
   const bodyPadding = isFullscreen ? "p-[5%]" : "p-4 md:p-6";
+
+  useLayoutEffect(() => {
+    const measure = () => {
+      const height = titleRef.current?.getBoundingClientRect().height ?? 0;
+      setTitleOffset(height + 24); // add buffer between title and lyrics
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [currentSong?.title, isFullscreen]);
+  const lineCount = cur.lines?.length || 0;
+  const isShortSlide = lineCount > 0 && lineCount <= 2;
+  const baseSpacing = isFullscreen ? 64 : 48;
+  const effectivePaddingTop = Math.max(titleOffset, baseSpacing);
+  const effectivePaddingBottom = isShortSlide ? effectivePaddingTop : baseSpacing;
 
   return (
     <div className="w-full min-h-screen bg-slate-100 p-4">
@@ -362,7 +379,10 @@ function DisplayScreen({ slides, slideIdx, currentSong, totalStanzas }: {
         >
           <div className="absolute inset-0 flex flex-col">
             <div className="h-1/6" />
-            <div className={`flex-1 flex items-center justify-center ${bodyPadding}`}>
+            <div
+              className={`flex-1 flex items-center justify-center ${bodyPadding} projector-body`}
+              style={{ paddingTop: effectivePaddingTop, paddingBottom: effectivePaddingBottom }}
+            >
               <div className="w-full h-full flex items-center justify-center">
                 <div
                   className={`projector-text text-center font-semibold leading-relaxed ${
@@ -381,7 +401,7 @@ function DisplayScreen({ slides, slideIdx, currentSong, totalStanzas }: {
               </div>
             </div>
           </div>
-          <div className="projector-title absolute top-4 inset-x-4 flex flex-col text-center text-sky-100 drop-shadow">
+          <div ref={titleRef} className="projector-title absolute top-4 inset-x-4 flex flex-col text-center text-sky-100 drop-shadow">
             <div className="projector-title__main font-semibold tracking-wide uppercase">
               {currentSong ? `${currentSong.ccliNo ? `${currentSong.ccliNo} • ` : ''}${currentSong.title.split('/')[0].trim()}` : ''}
             </div>

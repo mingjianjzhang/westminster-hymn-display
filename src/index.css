@@ -6,7 +6,7 @@ html, body, #root { height: 100%; }
 .projector-text {
   white-space: pre-wrap;
   line-height: 1.6;
-  font-size: clamp(2.2rem, 3.8vw, 4rem);
+  font-size: clamp(2.4rem, 4vw, 4.2rem);
 }
 
 .projector-text--dense {
@@ -32,6 +32,10 @@ html, body, #root { height: 100%; }
   height: 2px;
   background-color: rgba(191, 239, 255, 0.85);
   margin-top: 0.5rem;
+}
+
+.projector-body {
+  padding-top: clamp(3rem, 6vh, 5.5rem);
 }
 
 .projector-stanza-indicator {
@@ -60,6 +64,10 @@ html, body, #root { height: 100%; }
 
 .projector-canvas--preview .projector-title__subtitle {
   font-size: clamp(0.85rem, 1.2vw, 1.3rem);
+}
+
+.projector-canvas--preview .projector-body {
+  padding-top: clamp(1.5rem, 3vh, 3rem);
 }
 
 .projector-canvas--preview .projector-stanza-indicator {

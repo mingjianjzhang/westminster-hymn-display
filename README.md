@@ -9,6 +9,15 @@ Hymn Projector is a simple web application for presenting bilingual hymns during
 - Control screen for selecting hymns, adjusting modes, and triggering slides
 - Display screen shows hymn title, bilingual lyrics, and stanza progress indicator
 
+## Run on Windows (non‑technical steps)
+1) Install Node.js (includes npm). Visit <https://nodejs.org/en>, download the “LTS” Windows installer, and click through the defaults. After installation finishes, close and reopen any Command Prompt windows.  
+2) Get the project files. On the project’s GitHub page, click “Code” → “Download ZIP”. Right‑click the downloaded file and choose “Extract All…” into a folder you can find easily (e.g., `C:\HymnProjector`).  
+3) Open a Command Prompt in that folder. In File Explorer, open the extracted folder, click the address bar, type `cmd`, and press Enter. A black window will open already pointing at the project.  
+4) Install the app’s dependencies (only once): in that Command Prompt, type `npm install` and press Enter. Wait until it says done with no errors.  
+5) Start the app: type `npm run dev` and press Enter. When it finishes starting, it will show a “Local” URL such as `http://localhost:5173/`.  
+6) View and use the projector. Open that URL in your browser (Chrome, Edge, or Firefox). To mirror to a projector, open a second browser window on the projector screen and paste the same URL, then choose the display mode within the app’s controls.  
+7) When you’re finished, go back to the Command Prompt and press `Ctrl + C` to stop the app.
+
 ## Processing hymn indexes
 Use `scripts/process_hymns.py` to keep the hymn sources tidy:
 
