@@ -2,13 +2,22 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "re
 
 function uid() { return Math.random().toString(36).slice(2); }
 interface Verse { name: string; lines: string[]; type?: 'verse' | 'chorus' | 'other'; }
-interface Song { id: string; title: string; ccliNo?: string; verseOrder: string[]; verses: Record<string, Verse>; preInterleaved?: boolean; }
+interface Song {
+  id: string;
+  title: string;
+  ccliNo?: string;
+  verseOrder: string[];
+  verses: Record<string, Verse>;
+  preInterleaved?: boolean;
+  layoutHint?: 'compact';
+}
 
 function parseHymnFile(text: string, fixedId?: string): Song | null {
   try {
     const lines = text.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
     let title = "Untitled";
     let ccliNo: string | undefined;
+    let layoutHint: Song['layoutHint'];
     const verses: Record<string, Verse> = {};
     let inMetadata = true;
     let currentSectionKey = "";
@@ -108,12 +117,17 @@ function parseHymnFile(text: string, fixedId?: string): Song | null {
 
     for (const line of lines) {
       if (inMetadata) {
-        if (line.startsWith("Title:")) {
-          title = line.substring(6).trim();
+        const lower = line.toLowerCase();
+        if (line.startsWith("Title:")) { title = line.substring(6).trim(); continue; }
+        if (line.startsWith("CCLI:")) { ccliNo = line.substring(5).trim(); continue; }
+        if (lower.startsWith("layout:")) {
+          const value = line.substring(7).trim().toLowerCase();
+          if (value === 'compact') layoutHint = 'compact';
           continue;
         }
-        if (line.startsWith("CCLI:")) {
-          ccliNo = line.substring(5).trim();
+        if (lower.startsWith("compact:")) {
+          const value = line.substring(8).trim().toLowerCase();
+          if (value === 'true' || value === 'yes' || value === '1') layoutHint = 'compact';
           continue;
         }
         if (handleSectionHeading(line)) {
@@ -151,7 +165,8 @@ function parseHymnFile(text: string, fixedId?: string): Song | null {
       ccliNo,
       verseOrder,
       verses,
-      preInterleaved: true
+      preInterleaved: true,
+      layoutHint
     };
   } catch {
     return null;
@@ -357,6 +372,15 @@ function DisplayScreen({ slides, slideIdx, currentSong, totalStanzas }: {
   const baseSpacing = isFullscreen ? 64 : 48;
   const effectivePaddingTop = Math.max(titleOffset, baseSpacing);
   const effectivePaddingBottom = isShortSlide ? effectivePaddingTop : baseSpacing;
+  const isCompactSong = currentSong?.layoutHint === 'compact';
+  const textClassNames = [
+    "projector-text",
+    "text-center",
+    "font-semibold",
+    "leading-relaxed",
+    cur.layoutHint === 'dense' ? 'projector-text--dense' : '',
+    isCompactSong ? 'projector-text--compact' : ''
+  ].filter(Boolean).join(" ");
 
   return (
     <div className="w-full min-h-screen bg-slate-100 p-4">
@@ -385,9 +409,7 @@ function DisplayScreen({ slides, slideIdx, currentSong, totalStanzas }: {
             >
               <div className="w-full h-full flex items-center justify-center">
                 <div
-                  className={`projector-text text-center font-semibold leading-relaxed ${
-                    cur.layoutHint === 'dense' ? 'projector-text--dense' : ''
-                  }`}
+                  className={textClassNames}
                   style={{ color: '#ffff98' }}
                 >
                   {cur.lines && cur.lines.length > 0 ? (

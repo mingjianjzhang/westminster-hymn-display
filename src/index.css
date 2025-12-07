@@ -13,6 +13,10 @@ html, body, #root { height: 100%; }
   line-height: 1.35;
 }
 
+.projector-text--compact {
+  font-size: clamp(2.1rem, 3.6vw, 3.8rem);
+}
+
 /* Customizable projector title styling */
 .projector-title {
   gap: 0.35rem;
@@ -56,6 +60,10 @@ html, body, #root { height: 100%; }
 
 .projector-canvas--preview .projector-text--dense {
   line-height: 1.25;
+}
+
+.projector-canvas--preview .projector-text--compact {
+  font-size: clamp(0.9rem, 1.4vw, 1.6rem);
 }
 
 .projector-canvas--preview .projector-title__main {

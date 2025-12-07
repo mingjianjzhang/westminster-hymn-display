@@ -34,3 +34,7 @@ The script always applies the line-collation rule during generation and reformat
 - Hymns 194, 219, 237, 240, 243, 436 — now render with their multiple choruses, but keep an eye out for any transcription mistakes as more source PDFs get ingested
 - Enhancement idea: some hymns (e.g., around #340) have five-line choruses where the last line repeats; consider adding support so the full chorus fits on one slide without manual editing
 - Hymn 328 - no English text
+
+
+1920x1080
+
