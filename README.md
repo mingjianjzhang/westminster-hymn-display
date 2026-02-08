@@ -18,6 +18,14 @@ Hymn Projector is a simple web application for presenting bilingual hymns during
 6) View and use the projector. Open that URL in your browser (Chrome, Edge, or Firefox). To mirror to a projector, open a second browser window on the projector screen and paste the same URL, then choose the display mode within the app’s controls.  
 7) When you’re finished, go back to the Command Prompt and press `Ctrl + C` to stop the app.
 
+## Run on macOS (double‑click launcher)
+1) Install Node.js (includes npm). Visit <https://nodejs.org/en>, download the “LTS” macOS installer, and click through the defaults.  
+2) Get the project files. On the project’s GitHub page, click “Code” → “Download ZIP”. Double‑click the ZIP to extract it somewhere easy (e.g., `~/HymnProjector`).  
+3) In Finder, open the extracted folder and double‑click `start-hymn-projector.command`.  
+4) If macOS warns about the file, right‑click it, choose “Open”, then confirm.  
+5) The Terminal window will show a local URL such as `http://localhost:5173/`. Open that URL in your browser.  
+6) When you’re finished, return to the Terminal window and press `Ctrl + C`, then hit Enter to close the window.
+
 ## Processing hymn indexes
 Use `scripts/process_hymns.py` to keep the hymn sources tidy:
 

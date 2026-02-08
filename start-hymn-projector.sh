@@ -1,14 +1,19 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Quick launcher for macOS/Linux users.
-# - First run: installs dependencies with npm install
-# - Subsequent runs: just starts the dev server
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+cd "$SCRIPT_DIR"
+
+if ! command -v node >/dev/null 2>&1; then
+  echo "Node.js is not installed."
+  echo "Please install the LTS version from https://nodejs.org/en"
+  exit 1
+fi
 
 if [ ! -d "node_modules" ]; then
-  echo "First-time setup: installing dependencies..."
+  echo "Installing dependencies (first run)..."
   npm install
 fi
 
-echo "Starting Hymn Projector (dev server)..."
+echo "Starting Hymn Projector..."
 npm run dev

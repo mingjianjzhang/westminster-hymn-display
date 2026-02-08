@@ -1,19 +1,11 @@
 #!/usr/bin/env bash
-
-# Double-click starter for macOS.
-# First run: installs dependencies if missing, then starts dev server.
-# Subsequent runs: just starts the dev server.
-
 set -euo pipefail
 
-cd "$(dirname "$0")"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-if [ ! -d "node_modules" ]; then
-  echo "First-time setup: installing dependencies..."
-  npm install
-fi
+"$SCRIPT_DIR/start-hymn-projector.sh"
 
-echo "Starting Hymn Projector (dev server)..."
-npm run dev
-
-read -p "Press Enter to close this window..."
+echo ""
+echo "Hymn Projector stopped."
+echo "Press Enter to close this window."
+read -r
